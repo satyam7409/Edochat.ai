@@ -4,6 +4,10 @@ client/node_modules
 node_modules*
 
 env*
-backend/env
-client/env
+backend/.env
+client/.env
 env.example*
+
+.env
+.env.*
+!.env.example
