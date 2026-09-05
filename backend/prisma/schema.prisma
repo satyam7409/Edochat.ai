@@ -12,7 +12,6 @@ datasource db {
   provider = "postgresql"
 }
 
-
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -88,15 +87,17 @@ enum DocumentStatus {
 
 // Tracks which vector-DB entries belong to which document,
 // so a delete/edit knows exactly what to remove and re-insert.
+
 model DocumentChunk {
   id         String   @id @default(cuid())
   documentId String
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  vectorId   String   // the ID of this chunk inside the vector DB
-  preview    String   // first ~100 chars, handy for debugging/citations later
+  vectorId   String   // this chunk's ID inside Qdrant
+  preview    String   // first ~100 chars, handy for debugging
   createdAt  DateTime @default(now())
 
   @@index([documentId])
+  @@map("document_chunks")
 }
 
 // ── Assistant ─────────────────────────────────────────
