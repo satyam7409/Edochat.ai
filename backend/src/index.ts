@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { errorHandler } from "./middlewares/error.middleware";
 import orgRoutes from "./route/org.routes"
 import userRoutes from "./route/user.routes"
+import assistantRoutes from "./route/assistant.routes"
 dotenv.config();
 
 const app = express();
@@ -16,6 +17,7 @@ app.get("/", (req, res) => {
 
 app.use("/org",orgRoutes);
 app.use("/user",userRoutes);
+app.use("/org",assistantRoutes);
 app.use(errorHandler)
 
 app.listen(PORT, () => {
