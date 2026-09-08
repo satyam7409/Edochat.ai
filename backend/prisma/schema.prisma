@@ -18,14 +18,22 @@ model User {
   passwordHash String
   name         String
   role         Role     @default(ADMIN)
-  orgId        String
-  org          Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgId        String?
+  org          Org?     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 }
 
 enum Role {
   ADMIN
   STAFF
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 // ── Institution ───────────────────────────────────────
