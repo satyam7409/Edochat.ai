@@ -1,26 +1,37 @@
-import express from "express";
 import dotenv from "dotenv";
+dotenv.config(); // must be first so env vars are available everywhere
+
+import express from "express";
+import cors from "cors";
 import { errorHandler } from "./middlewares/error.middleware";
-import orgRoutes from "./route/org.routes"
-import userRoutes from "./route/user.routes"
-import assistantRoutes from "./route/assistant.routes"
-dotenv.config();
+import orgRoutes from "./route/org.routes";
+import userRoutes from "./route/user.routes";
+import assistantRoutes from "./route/assistant.routes";
 
 const app = express();
-app.use(express.json());
 const PORT = process.env.PORT;
-  
 
-app.get("/", (req, res) => {
+// ── CORS — must be registered before all routes ───────────────────────────────
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,                                   // allow cookies (refresh token)
+    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  })
+);
+
+app.use(express.json());
+
+app.get("/", (_req, res) => {
   res.json("I am healthy");
 });
 
-app.use("/org",orgRoutes);
-app.use("/user",userRoutes);
-app.use("/org",assistantRoutes);
-app.use(errorHandler)
+app.use("/org", orgRoutes);
+app.use("/user", userRoutes);
+app.use("/org", assistantRoutes);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
 });
-

@@ -25,19 +25,21 @@ export async function upsertChunk(params: {
   return vectorId;
 }
 
-// export async function searchChunks(params: {
-//   queryEmbedding: number[]; orgId: string; category?: string; limit?: number;
-// }) {
-//   const filter: any = { must: [{ key: "org_id", match: { value: params.orgId } }] };
-//   if (params.category) filter.must.push({ key: "category", match: { value: params.category } });
+export async function searchChunks(params: {
+  queryEmbedding: number[]; orgId: string; category?: string; limit?: number;
+}) {
+  const filter: any = { must: [{ key: "org_id", match: { value: params.orgId } }] };
+  if (params.category) filter.must.push({ key: "category", match: { value: params.category } });
 
-//   const results = await client.search(COLLECTION, {
-//     vector: params.queryEmbedding,
-//     filter,
-//     limit: params.limit ?? 5,
-//   });
-//   return results.map(r => r.payload?.chunk_text as string);
-// }
+  const results = await client.query(COLLECTION, {
+    query: params.queryEmbedding,
+    filter,
+    limit: params.limit ?? 5,
+    with_payload: true
+  });
+  console.log("results",results);
+  return results.points.map(r => r.payload?.chunk_text as string);
+}
 
 export async function deleteChunksByVectorIds(vectorIds: string[]) {
   if (vectorIds.length === 0) return;
@@ -64,11 +66,13 @@ export async function deleteDocumentChunks(documentId: string) {
 }
 
 // retrieval.service.ts — runs when a student asks a question
-// export async function retrieveContext(question: string, orgId: string, category?: string) {
-//   const queryEmbedding = await createEmbedding(question);
-//   const chunks = await searchChunks({ queryEmbedding, orgId, category });
-//   return chunks.join("\n\n");
-// }
+export async function retrieveContext(question: string, orgId: string, category?: string) {
+  const queryEmbedding = await createEmbedding(question);
+  console.log("query embeedings",queryEmbedding);
+  const chunks = await searchChunks({ queryEmbedding, orgId});
+  console.log("chunks",chunks);
+  return chunks.join("\n\n");
+}
 
 
 
