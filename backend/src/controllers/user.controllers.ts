@@ -17,11 +17,12 @@ function issueTokens(userId: string) {
   return { accessToken, refreshToken };
 }
 
+function hashToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 async function storeRefreshToken(userId: string, refreshToken: string) {
-  const tokenHash = crypto
-    .createHash("sha256")
-    .update(refreshToken)
-    .digest("hex");
+  const tokenHash = hashToken(refreshToken);
   await prisma.refreshToken.create({
     data: {
       tokenHash,
@@ -32,6 +33,8 @@ async function storeRefreshToken(userId: string, refreshToken: string) {
 }
 
 const signup = asyncHandler(async (req, res) => {
+  console.log("yh agayga baii");
+  
   const { name, email, password } = parseInput(signupSchema, req.body);
 
   // check by email, not name — email is the actual unique field on this model
@@ -100,4 +103,39 @@ const login = asyncHandler(async (req, res) => {
   );
 });
 
-export { signup, login };
+function readRefreshToken(cookieHeader: string | undefined) {
+  return cookieHeader?.split(";").map((part) => part.trim()).find((part) => part.startsWith("refreshToken="))?.slice("refreshToken=".length);
+}
+
+const refresh = asyncHandler(async (req, res) => {
+  const refreshToken = readRefreshToken(req.headers.cookie);
+  if (!refreshToken) throw new ApiError(401, "Refresh token required");
+
+  let payload: { userId: string };
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!);
+    if (typeof decoded === "string" || typeof decoded.userId !== "string") throw new Error("Invalid token payload");
+    payload = { userId: decoded.userId };
+  } catch {
+    throw new ApiError(401, "Invalid or expired refresh token");
+  }
+  const storedToken = await prisma.refreshToken.findUnique({ where: { tokenHash: hashToken(refreshToken) } });
+  if (!storedToken || storedToken.userId !== payload.userId || storedToken.expiresAt <= new Date()) {
+    throw new ApiError(401, "Invalid or expired refresh token");
+  }
+
+  await prisma.refreshToken.delete({ where: { id: storedToken.id } });
+  const { accessToken, refreshToken: rotatedRefreshToken } = issueTokens(payload.userId);
+  await storeRefreshToken(payload.userId, rotatedRefreshToken);
+  res.cookie("refreshToken", rotatedRefreshToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict", maxAge: 30 * 24 * 60 * 60 * 1000 });
+  return res.status(200).json(new ApiResponse(200, "Token refreshed", { accessToken }));
+});
+
+const logout = asyncHandler(async (req, res) => {
+  const refreshToken = readRefreshToken(req.headers.cookie);
+  if (refreshToken) await prisma.refreshToken.deleteMany({ where: { tokenHash: hashToken(refreshToken) } });
+  res.clearCookie("refreshToken", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" });
+  return res.status(200).json(new ApiResponse(200, "Logged out", {}));
+});
+
+export { signup, login, refresh, logout };

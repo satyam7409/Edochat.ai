@@ -37,8 +37,9 @@ export async function searchChunks(params: {
     limit: params.limit ?? 5,
     with_payload: true
   });
-  console.log("results",results);
-  return results.points.map(r => r.payload?.chunk_text as string);
+  return results.points
+    .map((result) => ({ text: result.payload?.chunk_text as string | undefined, score: result.score }))
+    .filter((result): result is { text: string; score: number } => Boolean(result.text) && typeof result.score === "number");
 }
 
 export async function deleteChunksByVectorIds(vectorIds: string[]) {
@@ -68,10 +69,13 @@ export async function deleteDocumentChunks(documentId: string) {
 // retrieval.service.ts — runs when a student asks a question
 export async function retrieveContext(question: string, orgId: string, category?: string) {
   const queryEmbedding = await createEmbedding(question);
-  console.log("query embeedings",queryEmbedding);
-  const chunks = await searchChunks({ queryEmbedding, orgId});
-  console.log("chunks",chunks);
-  return chunks.join("\n\n");
+  const chunks = await searchChunks({ queryEmbedding, orgId, ...(category ? { category } : {}) });
+  // Cosine scores below this point are generally unrelated for MiniLM embeddings.
+  const minimumScore = Number(process.env.RAG_MIN_SCORE ?? "0.45");
+  return chunks
+    .filter((chunk) => chunk.score >= minimumScore)
+    .map((chunk) => chunk.text)
+    .join("\n\n");
 }
 
 

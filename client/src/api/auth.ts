@@ -21,3 +21,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
   const res = await api.post('/user/login', { email, password });
   return res.data.data;
 }
+
+export async function logout(): Promise<void> {
+  await api.post('/user/logout');
+}

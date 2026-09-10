@@ -1,5 +1,10 @@
 // lib/supabaseStorage.ts
 import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+
+// ESM dependencies are evaluated before index.ts runs, so load this module's
+// configuration before creating the client at module scope.
+dotenv.config();
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,

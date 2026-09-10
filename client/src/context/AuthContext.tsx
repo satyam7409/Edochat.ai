@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import type { User } from '../api/auth';
+import { logout as revokeSession } from '../api/auth';
 
 interface AuthState {
   user: User | null;
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    void revokeSession().catch(() => undefined);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('orgId');

@@ -40,6 +40,10 @@ export const uploadDocumentSchema = z.object({
   if (value.text && !value.title) ctx.addIssue({ code: "custom", path: ["title"], message: "A title is required for pasted text" });
 });
 export const questionSchema = z.object({ question: z.string().trim().min(2, "Question must be at least 2 characters").max(2_000) }).strict();
+export const chatRequestSchema = questionSchema.extend({
+  sessionId: z.string().cuid("Invalid chat session").optional(),
+}).strict();
+export const assistantKeySchema = z.string().regex(/^[a-z0-9]{24}$/, "Invalid assistant key");
 
 export function parseInput<T>(schema: z.ZodType<T>, input: unknown): T {
   const result = schema.safeParse(input);

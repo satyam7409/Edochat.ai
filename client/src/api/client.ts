@@ -20,7 +20,22 @@ api.interceptors.request.use((config) => {
 // Unwrap the response envelope: { statusCode, message, data }
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const request = err?.config as (typeof err.config & { _retried?: boolean }) | undefined;
+    if (err?.response?.status === 401 && request && !request._retried && !request.url?.startsWith('/user/')) {
+      request._retried = true;
+      try {
+        const refresh = await api.post('/user/refresh');
+        const token = refresh.data.data.accessToken;
+        localStorage.setItem('accessToken', token);
+        request.headers.Authorization = `Bearer ${token}`;
+        return api(request);
+      } catch {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        localStorage.removeItem('orgId');
+      }
+    }
     const message =
       err?.response?.data?.message || err?.message || 'Something went wrong';
     return Promise.reject(new Error(message));

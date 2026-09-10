@@ -1,7 +1,7 @@
 import { PDFParse } from "pdf-parse";
 import multer from "multer";
 import { customAlphabet } from "nanoid";
-import { uploadDocumentFile } from "../lib/supabaseStorage";
+import { deleteDocumentFile, getSignedDocumentUrl, uploadDocumentFile } from "../lib/supabaseStorage";
 import { prisma } from "../lib/prisma";
 import { deleteDocumentChunks, ingestDocument } from "../qdrant/vectorClient";
 import { ApiError } from "../utils/ApiError";
@@ -28,6 +28,30 @@ async function processDocumentAsync(documentId: string, orgId: string, category:
   }
 }
 
+async function readDocumentContent(document: { sourceType: "FILE" | "TEXT"; fileUrl: string | null; textContent: string | null }) {
+  if (document.sourceType === "TEXT") {
+    if (!document.textContent) throw new Error("Text source is unavailable for reprocessing");
+    return document.textContent;
+  }
+  if (!document.fileUrl) throw new Error("PDF source is unavailable for reprocessing");
+  const signedUrl = await getSignedDocumentUrl(document.fileUrl);
+  const response = await fetch(signedUrl);
+  if (!response.ok) throw new Error("Unable to download the uploaded PDF for reprocessing");
+  return Buffer.from(await response.arrayBuffer());
+}
+
+// Recover uploads left in PROCESSING after an interrupted process or deployment.
+export async function retryProcessingDocuments() {
+  const documents = await prisma.document.findMany({
+    where: { status: "PROCESSING" },
+    select: { id: true, orgId: true, category: true, sourceType: true, fileUrl: true, textContent: true },
+  });
+  await Promise.allSettled(documents.map(async (document) => {
+    await deleteDocumentChunks(document.id);
+    await processDocumentAsync(document.id, document.orgId, document.category, await readDocumentContent(document));
+  }));
+}
+
 export const createKnowledgebase = asyncHandler(async (req, res) => {
   const { orgName, type, address } = parseInput(createOrgSchema, req.body);
   const userId = req.user!.id;
@@ -51,13 +75,13 @@ export const uploadDocument = asyncHandler(async (req, res) => {
   if (req.file) {
     if (req.file.mimetype !== "application/pdf") throw new ApiError(400, "Only PDF files allowed");
     const fileUrl = await uploadDocumentFile(req.file.buffer, `${orgId}/${Date.now()}-${req.file.originalname}`);
-    const document = await prisma.document.create({ data: { orgId, category, title: req.file.originalname, sourceType: "FILE", fileUrl, status: "PROCESSING" } });
+    const document = await prisma.document.create({ data: { orgId, category, title: req.file.originalname, sourceType: "FILE", fileUrl, textContent: null, status: "PROCESSING" } });
     res.status(202).json(new ApiResponse(202, "Upload received, processing started", { document }));
     void processDocumentAsync(document.id, orgId, category, req.file.buffer);
     return;
   }
   if (text && title) {
-    const document = await prisma.document.create({ data: { orgId, category, title, sourceType: "TEXT", fileUrl: null, status: "PROCESSING" } });
+    const document = await prisma.document.create({ data: { orgId, category, title, sourceType: "TEXT", fileUrl: null, textContent: text, status: "PROCESSING" } });
     res.status(202).json(new ApiResponse(202, "Text received, processing started", { document }));
     void processDocumentAsync(document.id, orgId, category, text);
     return;
@@ -85,6 +109,14 @@ export const deleteDocument = asyncHandler(async (req, res) => {
   if (!document) throw new ApiError(404, "Document not found");
   await deleteDocumentChunks(docId);
   await prisma.document.delete({ where: { id: docId } });
+  if (document.fileUrl) {
+    try {
+      await deleteDocumentFile(document.fileUrl);
+    } catch (error) {
+      // The database/vector state is already gone; log so this can be retried from storage tooling.
+      console.error(`Failed to delete storage file for document ${docId}:`, error);
+    }
+  }
   return res.status(200).json(new ApiResponse(200, "Document deleted", {}));
 });
 
@@ -94,7 +126,14 @@ export const updateDocument = asyncHandler(async (req, res) => {
   if (!document) throw new ApiError(404, "Document not found");
   if (!req.file || req.file.mimetype !== "application/pdf") throw new ApiError(400, "A PDF file is required");
   const fileUrl = await uploadDocumentFile(req.file.buffer, `${orgId}/${Date.now()}-${req.file.originalname}`);
-  await prisma.document.update({ where: { id: docId }, data: { fileUrl, title: req.file.originalname, status: "PROCESSING" } });
+  await prisma.document.update({ where: { id: docId }, data: { fileUrl, title: req.file.originalname, sourceType: "FILE", textContent: null, status: "PROCESSING" } });
+  if (document.fileUrl) {
+    try {
+      await deleteDocumentFile(document.fileUrl);
+    } catch (error) {
+      console.error(`Failed to delete replaced storage file for document ${docId}:`, error);
+    }
+  }
   res.status(202).json(new ApiResponse(202, "Update received, reprocessing started", {}));
   void deleteDocumentChunks(docId).then(() => processDocumentAsync(docId, orgId, document.category, req.file!.buffer));
 });

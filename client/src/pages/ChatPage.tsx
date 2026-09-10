@@ -64,6 +64,8 @@ function MessageBubble({ msg }: { msg: Message }) {
 export function ChatPage() {
   const { slug } = useParams<{ slug: string }>();
   const [assistantName, setAssistantName] = useState('Campus Assistant');
+  const [publicSiteKey, setPublicSiteKey] = useState('');
+  const [sessionId, setSessionId] = useState<string | undefined>(() => slug ? sessionStorage.getItem(`chat-session:${slug}`) ?? undefined : undefined);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,8 +79,9 @@ export function ChatPage() {
   useEffect(() => {
     if (!slug) return;
     getChatConfig(slug)
-      .then(({ assistantName: name, greeting }) => {
+      .then(({ assistantName: name, greeting, publicSiteKey: key }) => {
         setAssistantName(name);
+        setPublicSiteKey(new URLSearchParams(window.location.search).get('key') ?? key);
         setMessages([{ id: 'greeting', role: 'assistant', content: greeting }]);
       })
       .catch((err: unknown) => {
@@ -97,7 +100,7 @@ export function ChatPage() {
   async function handleSend(e: FormEvent) {
     e.preventDefault();
     const question = input.trim();
-    if (!question || loading || !slug) return;
+    if (!question || loading || !slug || !publicSiteKey) return;
 
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: question };
     setMessages((prev) => [...prev, userMsg]);
@@ -106,8 +109,10 @@ export function ChatPage() {
     setLoading(true);
 
     try {
-      const answer = await sendMessage(slug, question);
-      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: answer }]);
+      const response = await sendMessage(slug, question, publicSiteKey, sessionId);
+      setSessionId(response.sessionId);
+      sessionStorage.setItem(`chat-session:${slug}`, response.sessionId);
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: response.answer }]);
     } catch (err: unknown) {
       const errText =
         err instanceof Error && err.message.includes('429')

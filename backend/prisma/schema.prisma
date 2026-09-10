@@ -20,6 +20,7 @@ model User {
   role         Role     @default(ADMIN)
   orgId        String?
   org          Org?     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
   createdAt    DateTime @default(now())
 }
 
@@ -32,8 +33,11 @@ model RefreshToken {
   id        String   @id @default(cuid())
   tokenHash String   @unique
   userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // ── Institution ───────────────────────────────────────
@@ -46,6 +50,7 @@ model Org {
   users      User[]
   documents  Document[]
   assistant  Assistant?
+  chatSessions ChatSession[]
   createdAt  DateTime   @default(now())
 }
 
@@ -72,6 +77,7 @@ model Document {
   title      String
   sourceType SourceType
   fileUrl    String?          // null if it was pasted text, not an uploaded file
+  textContent String?         // retained so interrupted text ingestion can be retried
   status     DocumentStatus   @default(PROCESSING)
   chunks     DocumentChunk[]
   createdAt  DateTime         @default(now())
@@ -130,6 +136,7 @@ enum AssistantStatus {
 model ChatSession {
   id        String        @id @default(cuid())
   orgId     String
+  org       Org           @relation(fields: [orgId], references: [id], onDelete: Cascade)
   startedAt DateTime      @default(now())
   messages  ChatMessage[]
 }

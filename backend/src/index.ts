@@ -7,6 +7,8 @@ import { errorHandler } from "./middlewares/error.middleware";
 import orgRoutes from "./route/org.routes";
 import userRoutes from "./route/user.routes";
 import assistantRoutes from "./route/assistant.routes";
+import { retryProcessingDocuments } from "./controllers/org.controllers";
+import { ensureKnowledgeCollection } from "./lib/qdrant";
 
 const app = express();
 const PORT = process.env.PORT;
@@ -16,8 +18,8 @@ app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,                                   // allow cookies (refresh token)
-    allowedHeaders: ["Content-Type", "Authorization"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    // allowedHeaders: ["Content-Type", "Authorization", "X-Assistant-Key"],
+    // methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
 );
 
@@ -30,8 +32,11 @@ app.get("/", (_req, res) => {
 app.use("/org", orgRoutes);
 app.use("/user", userRoutes);
 app.use("/org", assistantRoutes);
+
 app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
+  void ensureKnowledgeCollection().catch((error) => console.error("Failed to initialise Qdrant collection:", error));
+  void retryProcessingDocuments().catch((error) => console.error("Failed to recover processing documents:", error));
 });

@@ -3,6 +3,7 @@ import { api } from './client';
 export interface ChatConfig {
   assistantName: string;
   greeting: string;
+  publicSiteKey: string;
 }
 
 export async function getChatConfig(slug: string): Promise<ChatConfig> {
@@ -10,7 +11,9 @@ export async function getChatConfig(slug: string): Promise<ChatConfig> {
   return res.data.data;
 }
 
-export async function sendMessage(slug: string, question: string): Promise<string> {
-  const res = await api.post(`/org/chat/${slug}`, { question });
-  return res.data.data.answer;
+export async function sendMessage(slug: string, question: string, publicSiteKey: string, sessionId?: string): Promise<{ answer: string; sessionId: string }> {
+  const res = await api.post(`/org/chat/${slug}`, { question, ...(sessionId ? { sessionId } : {}) }, {
+    headers: { 'X-Assistant-Key': publicSiteKey },
+  });
+  return res.data.data;
 }
