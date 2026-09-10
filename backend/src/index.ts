@@ -21,10 +21,10 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 app.get("/", (_req, res) => {
-  res.json("I am healthy");
+  res.status(200).json({ success: true, message: "EduChat API is healthy" });
 });
 
 app.use("/org", orgRoutes);

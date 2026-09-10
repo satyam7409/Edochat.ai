@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { loginSchema, parseInput, signupSchema } from "../utils/validation";
 
 function issueTokens(userId: string) {
   const accessToken = jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET!, {
@@ -31,14 +32,7 @@ async function storeRefreshToken(userId: string, refreshToken: string) {
 }
 
 const signup = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    throw new ApiError(400, "Name, email, and password are required");
-  }
-  if (password.length < 8) {
-    throw new ApiError(400, "Password must be at least 8 characters");
-  }
+  const { name, email, password } = parseInput(signupSchema, req.body);
 
   // check by email, not name — email is the actual unique field on this model
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -70,11 +64,7 @@ const signup = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    throw new ApiError(400, "Email and password are required");
-  }
+  const { email, password } = parseInput(loginSchema, req.body);
 
   const user = await prisma.user.findUnique({ where: { email } });
   // deliberately vague error either way — never reveal whether the email exists

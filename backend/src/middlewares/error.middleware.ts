@@ -1,16 +1,22 @@
 import type { Request, Response, NextFunction } from "express";
+import multer from "multer";
 import { ApiError } from "../utils/ApiError";
 
 export const errorHandler = (
-  err: ApiError,
-  req: Request,
+  err: unknown,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
-  console.error(err);
+  if (err instanceof multer.MulterError) {
+    const message = err.code === "LIMIT_FILE_SIZE" ? "PDF files must be 10 MB or smaller" : err.message;
+    return res.status(400).json({ success: false, message });
+  }
+  const apiError = err instanceof ApiError ? err : new ApiError(500, "Internal Server Error");
+  if (!(err instanceof ApiError)) console.error(err);
 
-  return res.status(err.statusCode || 500).json({
+  return res.status(apiError.statusCode).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    message: apiError.message,
   });
 };

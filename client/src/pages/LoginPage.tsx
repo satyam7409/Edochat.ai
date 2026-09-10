@@ -1,5 +1,5 @@
-import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState,type FormEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -9,7 +9,8 @@ import { useAuth } from '../context/AuthContext';
 type Tab = 'login' | 'signup';
 
 export function LoginPage() {
-  const [tab, setTab] = useState<Tab>('login');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => searchParams.get('mode') === 'signup' ? 'signup' : 'login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { setAuth } = useAuth();

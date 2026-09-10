@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { Send, BookOpen, AlertCircle } from 'lucide-react';
 import { getChatConfig, sendMessage } from '../api/chat';

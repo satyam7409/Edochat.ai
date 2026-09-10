@@ -4,13 +4,10 @@ import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { retrieveContext } from "../qdrant/vectorClient";
 import { generateAnswer } from "../lib/llm";
+import { orgParamsSchema, parseInput, questionSchema, slugParamsSchema } from "../utils/validation";
 
 export const generateAssistant = asyncHandler(async (req, res) => {
-  const { orgId } = req.params;
-
-  if (typeof orgId !== "string") {
-    throw new Error("Invalid orgId");
-  }
+  const { orgId } = parseInput(orgParamsSchema, req.params);
   const readyDocsCount = await prisma.document.count({
     where: { orgId, status: "READY" },
   });
@@ -44,10 +41,7 @@ export const generateAssistant = asyncHandler(async (req, res) => {
 
 
 export const getPublicAssistantConfig = asyncHandler(async (req, res) => {
-  const { slug } = req.params;
-  if (typeof slug !== "string") {
-    throw new Error("Invalid orgId");
-  }
+  const { slug } = parseInput(slugParamsSchema, req.params);
   const org = await prisma.org.findUnique({ where: { slug }, include: { assistant: true } });
   if (!org?.assistant || org.assistant.status !== "LIVE") throw new ApiError(404, "Assistant not available");
 
@@ -58,17 +52,11 @@ export const getPublicAssistantConfig = asyncHandler(async (req, res) => {
 });
 
 export const publicChat = asyncHandler(async (req, res) => {
-  const { slug } = req.params;
-    if (typeof slug !== "string") {
-    throw new Error("Invalid orgId");
-  }
-  const { question } = req.body;
-  if (!question) throw new ApiError(400, "Question is required");
+  const { slug } = parseInput(slugParamsSchema, req.params);
+  const { question } = parseInput(questionSchema, req.body);
 
   const org = await prisma.org.findUnique({ where: { slug }, include: { assistant: true } });
   if (!org?.assistant || org.assistant.status !== "LIVE") throw new ApiError(404, "Assistant not available");
-  
-  console.log("org",org);
   
   const context = await retrieveContext(question, org.id);
   if (!context.trim()) {

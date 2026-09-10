@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ChatPage } from './pages/ChatPage';
-import { Spinner } from './components/ui/Spinner';
-import { JSX } from 'react';
+import type { JSX } from 'react';
 
 // ─── Route Guards ─────────────────────────────────────────────────────────────
 
@@ -22,19 +22,10 @@ function RequireOrg({ children }: { children: JSX.Element }) {
   return children;
 }
 
-function RootRedirect() {
-  const { isAuthenticated, orgId } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!orgId) return <Navigate to="/onboarding" replace />;
-  return <Navigate to="/dashboard" replace />;
-}
-
-// ─── App ──────────────────────────────────────────────────────────────────────
-
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<RootRedirect />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
         path="/onboarding"

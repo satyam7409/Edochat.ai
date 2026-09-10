@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, MapPin } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -24,7 +24,6 @@ export function OnboardingPage() {
     setLoading(true);
     try {
       const { org } = await createOrg({
-        userId: user.id,
         orgName,
         type,
         address: address || undefined,

@@ -163,12 +163,10 @@ function DeleteModal({
 
 function DocumentRow({
   doc,
-  orgId,
   onDelete,
   onReplace,
 }: {
   doc: Document;
-  orgId: string;
   onDelete: (doc: Document) => void;
   onReplace: (doc: Document) => void;
 }) {
@@ -555,7 +553,6 @@ export function DashboardPage() {
                   <DocumentRow
                     key={doc.id}
                     doc={doc}
-                    orgId={orgId!}
                     onDelete={setDeleteTarget}
                     onReplace={handleReplaceClick}
                   />

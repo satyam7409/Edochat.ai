@@ -33,7 +33,6 @@ export interface Assistant {
 }
 
 export async function createOrg(payload: {
-  userId: string;
   orgName: string;
   type: 'SCHOOL' | 'COLLEGE';
   address?: string;
@@ -70,8 +69,7 @@ export async function deleteDocument(orgId: string, docId: string): Promise<void
 export async function replaceDocument(orgId: string, docId: string, file: File): Promise<void> {
   const formData = new FormData();
   formData.append('pdfFile', file);
-  // Backend route: PATCH /org/orgs/:orgId/documents/:docId
-  await api.patch(`/org/orgs/${orgId}/documents/${docId}`, formData, {
+  await api.patch(`/org/${orgId}/documents/${docId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 }
