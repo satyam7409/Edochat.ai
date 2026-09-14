@@ -29,9 +29,9 @@ app.get("/", (_req, res) => {
   res.status(200).json({ success: true, message: "EduChat API is healthy" });
 });
 
+app.use("/org", assistantRoutes);
 app.use("/org", orgRoutes);
 app.use("/user", userRoutes);
-app.use("/org", assistantRoutes);
 
 app.use(errorHandler);
 

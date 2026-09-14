@@ -41,7 +41,9 @@ export const generateAssistant = asyncHandler(async (req, res) => {
 
 
 export const getPublicAssistantConfig = asyncHandler(async (req, res) => {
+  console.log("hi i got hit hard");
   const { slug } = parseInput(slugParamsSchema, req.params);
+  console.log("slug", slug);
   const org = await prisma.org.findUnique({ where: { slug }, include: { assistant: true } });
   if (!org?.assistant || org.assistant.status !== "LIVE") throw new ApiError(404, "Assistant not available");
 
@@ -54,6 +56,8 @@ export const getPublicAssistantConfig = asyncHandler(async (req, res) => {
 
 export const publicChat = asyncHandler(async (req, res) => {
   const { slug } = parseInput(slugParamsSchema, req.params);
+  console.log("sluggg",slug);
+  
   const { question, sessionId } = parseInput(chatRequestSchema, req.body);
   const assistantKey = parseInput(assistantKeySchema, req.header("x-assistant-key"));
 
@@ -76,6 +80,8 @@ export const publicChat = asyncHandler(async (req, res) => {
   const history = historyMessages.reverse().map((message) => `${message.role}: ${message.content}`).join("\n");
   
   const context = await retrieveContext(question, org.id);
+  console.log("context", context);
+  
   if (!context.trim()) {
     const answer = "I couldn't find anything about that in our records. Please contact the office directly.";
     await prisma.chatMessage.create({ data: { sessionId: session.id, role: "ASSISTANT", content: answer } });
