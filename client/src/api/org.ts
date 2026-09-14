@@ -17,10 +17,16 @@ export interface Document {
   category: DocumentCategory;
   title: string;
   sourceType: 'FILE' | 'TEXT';
+  textContent?: string | null;
   fileUrl?: string;
   status: DocumentStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+export async function createTextDocument(orgId: string, payload: { category: DocumentCategory; title: string; text: string }): Promise<Document> {
+  const res = await api.post(`/org/${orgId}/documents`, payload);
+  return res.data.data.document;
 }
 
 export interface Assistant {
@@ -72,4 +78,8 @@ export async function replaceDocument(orgId: string, docId: string, file: File):
   await api.patch(`/org/${orgId}/documents/${docId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+}
+
+export async function replaceTextDocument(orgId: string, docId: string, payload: { title?: string; text: string }): Promise<void> {
+  await api.patch(`/org/${orgId}/documents/${docId}`, payload);
 }

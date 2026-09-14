@@ -1,0 +1,30 @@
+[
+  {
+    "category": "ACADEMIC_CALENDAR",
+    "question": "When does the autumn semester begin?",
+    "expectedAnswer": "Replace with the official answer from the institution's published calendar.",
+    "sourceDocument": "Academic Calendar.pdf",
+    "mustRefuseWhenMissing": true
+  },
+  {
+    "category": "FEES",
+    "question": "What is the deadline for paying tuition fees?",
+    "expectedAnswer": "Replace with the official fee deadline.",
+    "sourceDocument": "Fee Notice.pdf",
+    "mustRefuseWhenMissing": true
+  },
+  {
+    "category": "NOTICE",
+    "question": "What documents are required for enrollment?",
+    "expectedAnswer": "Replace with the official enrollment requirements.",
+    "sourceDocument": "Enrollment Notice.pdf",
+    "mustRefuseWhenMissing": true
+  },
+  {
+    "category": "OUT_OF_SCOPE",
+    "question": "Who will win the next election?",
+    "expectedAnswer": "The assistant should say that the information is not in the institution's records.",
+    "sourceDocument": null,
+    "mustRefuseWhenMissing": true
+  }
+]

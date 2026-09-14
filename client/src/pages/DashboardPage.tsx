@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FileText, Trash2, Upload, Zap, RefreshCw, CheckCircle2,
-  Copy, Check, ExternalLink, LogOut, AlertCircle, RotateCcw
+  Copy, Check, ExternalLink, LogOut, AlertCircle, RotateCcw, Sparkles,
+  Database, ArrowUpRight, Home, Pencil
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -9,7 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { Spinner } from '../components/ui/Spinner';
 import { useAuth } from '../context/AuthContext';
 import {
-  listDocuments, uploadDocument, deleteDocument, getDocument, replaceDocument,
+  listDocuments, uploadDocument, createTextDocument, deleteDocument, getDocument, replaceDocument, replaceTextDocument,
   type Document, type DocumentCategory
 } from '../api/org';
 import { generateAssistant, type GenerateResult } from '../api/assistant';
@@ -68,9 +69,9 @@ function GenerateModal({ open, onClose, result }: { open: boolean; onClose: () =
   if (!result) return null;
   return (
     <Modal open={open} onClose={onClose}>
-      <div className="p-8 text-center">
-        <div className="pop-in inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-50 mb-4">
-          <CheckCircle2 className="h-8 w-8 text-green-600" />
+      <div className="p-7 sm:p-8 text-center">
+        <div className="pop-in inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-emerald-50 ring-8 ring-emerald-50/60 mb-5">
+          <CheckCircle2 className="h-8 w-8 text-emerald-600" />
         </div>
         <h2 className="text-xl font-semibold text-gray-900 mb-1">Your assistant is live!</h2>
         <p className="text-sm text-gray-500 mb-6">Students can now ask questions via the link below.</p>
@@ -85,14 +86,14 @@ function GenerateModal({ open, onClose, result }: { open: boolean; onClose: () =
                 href={result.publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Open
               </a>
             </div>
           </div>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 break-all font-mono">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 break-all dashboard-mono">
             {result.publicUrl}
           </div>
         </div>
@@ -103,7 +104,7 @@ function GenerateModal({ open, onClose, result }: { open: boolean; onClose: () =
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Embed snippet</span>
             <CopyButton text={result.embedSnippet} label="Copy code" />
           </div>
-          <div className="bg-gray-900 rounded-lg px-4 py-3 text-left overflow-x-auto">
+          <div className="bg-slate-950 rounded-xl px-4 py-3 text-left overflow-x-auto shadow-inner">
             <code className="text-xs text-green-400 break-all whitespace-pre-wrap">{result.embedSnippet}</code>
           </div>
         </div>
@@ -157,6 +158,15 @@ function DeleteModal({
       </div>
     </Modal>
   );
+}
+
+function TextDocumentModal({ open, onClose, initial, onSave }: { open: boolean; onClose: () => void; initial?: Document | null; onSave: (title: string, text: string) => Promise<void> }) {
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [text, setText] = useState(initial?.textContent ?? '');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setTitle(initial?.title ?? ''); setText(initial?.textContent ?? ''); }, [initial, open]);
+  async function save() { if (!title.trim() || !text.trim()) return; setSaving(true); try { await onSave(title.trim(), text.trim()); onClose(); } finally { setSaving(false); } }
+  return <Modal open={open} onClose={onClose}><div className="p-6 sm:p-7"><h2 className="text-xl font-bold text-slate-900">{initial ? 'Edit text document' : 'Add text document'}</h2><p className="mt-1 text-sm text-slate-500">Paste the content your assistant should search.</p><input value={title} onChange={e => setTitle(e.target.value)} placeholder="Document title" className="mt-5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-500" /><textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste document text here…" rows={10} className="mt-3 w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-500" /><div className="mt-4 flex gap-2"><Button variant="secondary" onClick={onClose} className="flex-1 justify-center">Cancel</Button><Button onClick={save} loading={saving} disabled={!title.trim() || !text.trim()} className="flex-1 justify-center">{initial ? 'Save changes' : 'Add text'}</Button></div></div></Modal>;
 }
 
 // ─── Document Row ─────────────────────────────────────────────────────────────
@@ -220,6 +230,8 @@ export function DashboardPage() {
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFor, setUploadingFor] = useState<DocumentCategory | null>(null);
   const [replaceTarget, setReplaceTarget] = useState<Document | null>(null);
+  const [textModalOpen, setTextModalOpen] = useState(false);
+  const [textEditTarget, setTextEditTarget] = useState<Document | null>(null);
 
   // Generate assistant
   const [generating, setGenerating] = useState(false);
@@ -307,6 +319,19 @@ export function DashboardPage() {
     fileInputRef.current?.click();
   }
 
+  async function handleTextSave(title: string, text: string) {
+    if (!orgId) return;
+    if (textEditTarget) {
+      await replaceTextDocument(orgId, textEditTarget.id, { title, text });
+      setAllDocs(prev => prev.map(d => d.id === textEditTarget.id ? { ...d, title, sourceType: 'TEXT', status: 'PROCESSING' } : d));
+      startPolling(textEditTarget.id);
+    } else {
+      const doc = await createTextDocument(orgId, { category: selectedCategory, title, text });
+      setAllDocs(prev => [doc, ...prev]);
+      startPolling(doc.id);
+    }
+  }
+
   async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !orgId || !uploadingFor) return;
@@ -326,6 +351,7 @@ export function DashboardPage() {
   // ── Replace ────────────────────────────────────────────────────────────────
 
   function handleReplaceClick(doc: Document) {
+    if (doc.sourceType === 'TEXT') { setTextEditTarget(doc); setTextModalOpen(true); return; }
     setReplaceTarget(doc);
     replaceFileInputRef.current?.click();
   }
@@ -407,16 +433,20 @@ export function DashboardPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="dashboard-shell h-screen flex flex-col">
       {/* Top bar */}
-      <header className="h-14 bg-white border-b border-gray-100 flex items-center px-6 gap-4 flex-shrink-0">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="font-semibold text-gray-900 truncate">{orgName}</span>
+      <header className="h-[72px] bg-white/90 backdrop-blur border-b border-slate-200/80 flex items-center px-4 sm:px-7 gap-4 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <button onClick={() => navigate('/')} title="Back to landing page" className="h-10 w-10 rounded-xl bg-slate-950 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 hover:bg-indigo-700"><Sparkles className="h-4 w-4" /></button>
+          <div className="min-w-0">
+            <p className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-indigo-600">Knowledge studio</p>
+            <span className="font-bold text-slate-900 truncate block leading-tight">{orgName}</span>
+          </div>
           <Badge variant={assistantLive ? 'live' : 'draft'}>
             {assistantLive ? 'Live' : 'Not live yet'}
           </Badge>
           <span className="text-sm text-gray-400 hidden sm:block">·</span>
-          <span className="text-sm text-gray-500 hidden sm:block">{readyCount} docs ready</span>
+          <span className="text-sm text-slate-500 hidden md:block">{readyCount} sources ready</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -449,14 +479,19 @@ export function DashboardPage() {
           >
             <LogOut className="h-4 w-4" />
           </button>
+          <button onClick={() => navigate('/')} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-900"><Home className="h-3.5 w-3.5" /> Home</button>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
-        <aside className="w-56 bg-white border-r border-gray-100 flex-shrink-0 py-4 overflow-y-auto">
-          <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            Categories
+        <aside className="w-60 bg-white/70 border-r border-slate-200/80 flex-shrink-0 py-6 overflow-y-auto hidden md:block">
+          <div className="px-5 mb-6">
+            <p className="text-[10px] font-extrabold text-indigo-600 uppercase tracking-[0.14em]">Knowledge base</p>
+            <p className="text-sm text-slate-600 mt-2 leading-relaxed">Organise the sources that power your assistant.</p>
+          </div>
+          <p className="px-5 text-[11px] font-extrabold text-slate-400 uppercase tracking-[0.14em] mb-2">
+            Library
           </p>
           <nav className="flex flex-col gap-0.5 px-2">
             {CATEGORIES.map(({ id, label }) => (
@@ -465,15 +500,15 @@ export function DashboardPage() {
                 onClick={() => setSelectedCategory(id)}
                 className={`flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   selectedCategory === id
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-slate-800 text-white shadow-sm shadow-slate-300'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 <span>{label}</span>
                 {countsByCategory[id] > 0 && (
                   <span
                     className={`text-xs font-medium rounded-full px-1.5 py-0.5 ${
-                      selectedCategory === id ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'
+                      selectedCategory === id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
                     }`}
                   >
                     {countsByCategory[id]}
@@ -486,21 +521,32 @@ export function DashboardPage() {
 
         {/* Main panel */}
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-6 py-6">
+          <div className="max-w-4xl mx-auto px-4 sm:px-8 py-8 sm:py-10">
+            <div className="dashboard-panel mb-8 rounded-2xl bg-slate-950 px-5 py-5 sm:px-7 sm:py-6 text-white overflow-hidden relative">
+              <div className="absolute -right-8 -top-16 h-48 w-48 rounded-full bg-indigo-500/30 blur-2xl" />
+              <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                <div>
+                  <div className="flex items-center gap-2 text-indigo-200 text-xs font-bold uppercase tracking-[0.14em] mb-2"><Database className="h-3.5 w-3.5" /> Assistant readiness</div>
+                  <p className="dashboard-serif text-2xl sm:text-3xl leading-tight">{readyCount ? 'Your knowledge base is ready.' : 'Add your first source.'}</p>
+                  <p className="text-sm text-slate-300 mt-2">{readyCount ? `${readyCount} ready source${readyCount === 1 ? '' : 's'} can answer student questions.` : 'Upload a PDF and we’ll turn it into searchable answers.'}</p>
+                </div>
+                {assistantLive && generateResult && <a href={generateResult.publicUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-900 hover:bg-indigo-50 transition-colors">Open assistant <ArrowUpRight className="h-4 w-4" /></a>}
+              </div>
+            </div>
             {/* Panel header */}
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-xl font-extrabold text-slate-900">
                   {CATEGORIES.find((c) => c.id === selectedCategory)?.label}
                 </h2>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {categoryDocs.length} document{categoryDocs.length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <Button onClick={handleUploadClick} variant="secondary">
+              <div className="flex gap-2"><Button onClick={() => { setTextEditTarget(null); setTextModalOpen(true); }} variant="secondary"><Pencil className="h-4 w-4" /> Add text</Button><Button onClick={handleUploadClick} variant="secondary">
                 <Upload className="h-4 w-4" />
                 Upload PDF
-              </Button>
+              </Button></div>
             </div>
 
             {/* Hidden file inputs */}
@@ -540,15 +586,15 @@ export function DashboardPage() {
                 </div>
                 <p className="text-sm font-medium text-gray-700">No documents yet</p>
                 <p className="text-xs text-gray-400 max-w-xs">
-                  Upload a PDF to start building your knowledge base for this category.
+                  Upload a PDF or add text to start building your knowledge base for this category.
                 </p>
                 <Button variant="secondary" onClick={handleUploadClick} className="mt-1">
-                  <Upload className="h-4 w-4" />
-                  Upload PDF
+                  <Pencil className="h-4 w-4" />
+                  Add text
                 </Button>
               </div>
             ) : (
-              <div className="card divide-y divide-gray-50">
+              <div className="card dashboard-panel divide-y divide-slate-100 border-slate-200/70">
                 {categoryDocs.map((doc) => (
                   <DocumentRow
                     key={doc.id}
@@ -576,6 +622,7 @@ export function DashboardPage() {
         title={deleteTarget?.title ?? ''}
         loading={deleteLoading}
       />
+      <TextDocumentModal open={textModalOpen} onClose={() => { setTextModalOpen(false); setTextEditTarget(null); }} initial={textEditTarget} onSave={handleTextSave} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ChatPage } from './pages/ChatPage';
+import { LegalPage } from './pages/LegalPage';
 import type { JSX } from 'react';
 
 // ─── Route Guards ─────────────────────────────────────────────────────────────
@@ -45,6 +46,10 @@ function AppRoutes() {
       />
       {/* Public chat — no auth required */}
       <Route path="/chat/:slug" element={<ChatPage />} />
+      <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+      <Route path="/terms" element={<LegalPage kind="terms" />} />
+      <Route path="/retention" element={<LegalPage kind="retention" />} />
+      <Route path="/contact" element={<LegalPage kind="contact" />} />
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

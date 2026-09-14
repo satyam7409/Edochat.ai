@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export async function generateAnswer(question: string, context: string, assistantName: string, history = ""): Promise<string> {
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",   // the free-tier model — check AI Studio for the latest flash version when you set this up
+    model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
     contents: `${question}`,
     config: {
       systemInstruction: `You are ${assistantName}, a helpful assistant for students at this institution.

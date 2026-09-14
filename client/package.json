@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && npm run verify:widget",
+    "verify:widget": "node scripts/verify-widget.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },

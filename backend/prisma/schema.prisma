@@ -51,6 +51,8 @@ model Org {
   documents  Document[]
   assistant  Assistant?
   chatSessions ChatSession[]
+  chatUsageCount Int      @default(0)
+  chatUsageMonth DateTime @default(now())
   createdAt  DateTime   @default(now())
 }
 
@@ -140,6 +142,7 @@ model ChatSession {
   startedAt DateTime      @default(now())
   messages  ChatMessage[]
 }
+
 
 model ChatMessage {
   id        String      @id @default(cuid())

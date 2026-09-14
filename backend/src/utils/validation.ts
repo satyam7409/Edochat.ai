@@ -39,6 +39,10 @@ export const uploadDocumentSchema = z.object({
   if (!value.text && value.title) ctx.addIssue({ code: "custom", path: ["text"], message: "Text content is required when providing a title" });
   if (value.text && !value.title) ctx.addIssue({ code: "custom", path: ["title"], message: "A title is required for pasted text" });
 });
+export const updateDocumentSchema = z.object({
+  text: z.string().trim().min(1).max(200_000),
+  title: z.string().trim().min(1).max(200).optional(),
+}).strict();
 export const questionSchema = z.object({ question: z.string().trim().min(2, "Question must be at least 2 characters").max(2_000) }).strict();
 export const chatRequestSchema = questionSchema.extend({
   sessionId: z.string().cuid("Invalid chat session").optional(),
