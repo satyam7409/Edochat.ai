@@ -9,6 +9,7 @@ import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asynchandler";
 import { chunkText } from "../utils/chunkText";
 import { createOrgSchema, documentParamsSchema, documentQuerySchema, orgParamsSchema, parseInput, updateDocumentSchema, uploadDocumentSchema } from "../utils/validation";
+import type { Document } from "../generated/prisma/client";
 
 export const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_req, file, callback) => callback(null, file.mimetype === "application/pdf") });
 const generateSiteKey = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 24);

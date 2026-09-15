@@ -11,6 +11,8 @@ import {
   parseInput,
   slugParamsSchema,
 } from "../utils/validation";
+import type { ChatMessage } from "../generated/prisma/client";
+
 
 const DEFAULT_MONTHLY_CHAT_LIMIT = 1000;
 
@@ -119,7 +121,7 @@ export const publicChat = asyncHandler(async (req, res) => {
   });
   const history = historyMessages
     .reverse()
-    .map((message) => `${message.role}: ${message.content}`)
+    .map((message: ChatMessage) => `${message.role}: ${message.content}`)
     .join("\n");
 
   await prisma.chatMessage.create({
