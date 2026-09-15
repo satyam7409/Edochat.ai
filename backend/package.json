@@ -4,14 +4,13 @@
   "description": "",
   "main": "index.js",
   "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "postinstall": "prisma skills sync || exit 0",
-    "contract:emit": "prisma contract emit"
-  },
+"scripts": {
+  "dev": "tsx watch src/index.ts",
+  "build": "prisma generate && tsc",
+  "start": "node dist/index.js",
+  "postinstall": "prisma skills sync || exit 0",
+  "contract:emit": "prisma contract emit"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
