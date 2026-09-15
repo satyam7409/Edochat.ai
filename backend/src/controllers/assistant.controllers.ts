@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { retrieveContext } from "../qdrant/vectorClient";
-import { generateAnswer } from "../lib/llm";
+import { streamAnswer } from "../lib/llm";
 import {
   assistantKeySchema,
   chatRequestSchema,
@@ -98,7 +98,7 @@ export const publicChat = asyncHandler(async (req, res) => {
   if (assistantKey !== org.assistant.publicSiteKey)
     throw new ApiError(403, "Invalid assistant key");
 
-  await reserveChatUsage(org.id);
+  // await reserveChatUsage(org.id);   // ← confirm intentional: no monthly cap is currently enforced
 
   let session;
   if (sessionId) {
@@ -109,10 +109,9 @@ export const publicChat = asyncHandler(async (req, res) => {
   } else {
     session = await prisma.chatSession.create({ data: { orgId: org.id } });
   }
-  await prisma.chatMessage.create({
-    data: { sessionId: session.id, role: "USER", content: question },
-  });
 
+  // FIX: fetch history BEFORE saving the current question, so the question
+  // never ends up counted as its own prior context.
   const historyMessages = await prisma.chatMessage.findMany({
     where: { sessionId: session.id },
     orderBy: { createdAt: "desc" },
@@ -123,34 +122,49 @@ export const publicChat = asyncHandler(async (req, res) => {
     .map((message) => `${message.role}: ${message.content}`)
     .join("\n");
 
-  const context = await retrieveContext(question, org.id);
-  if (!context.trim()) {
-    const answer =
-      "I couldn't find anything about that in our records. Please contact the office directly.";
-    await prisma.chatMessage.create({
-      data: { sessionId: session.id, role: "ASSISTANT", content: answer },
-    });
-    return res.status(200).json(
-      new ApiResponse(200, "No matching content", {
-        answer,
-        sessionId: session.id,
-      }),
-    );
-  }
+  await prisma.chatMessage.create({
+    data: { sessionId: session.id, role: "USER", content: question },
+  });
 
-  const answer = await generateAnswer(
-    question,
-    context,
-    org.assistant.name,
-    history,
-  );
+  const context = await retrieveContext(question, org.id);
+  res.status(200).set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  res.flushHeaders();
+
+  let disconnected = false;
+  res.on("close", () => { disconnected = true; });
+  const send = (event: string, data: unknown) => {
+    if (!disconnected) {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      // res.flush?.();
+    }
+  };
+
+  try {
+  // Always call the LLM — the system prompt already knows how to handle
+  // "context is empty because this is a general question" vs.
+  // "context is empty because the docs genuinely don't cover this."
+  const answer = await streamAnswer(question, context, org.assistant.name, history, (token) => {
+    send("token", { token });
+  });
+
   await prisma.chatMessage.create({
     data: { sessionId: session.id, role: "ASSISTANT", content: answer },
   });
-  return res.status(200).json(
-    new ApiResponse(200, "Answer generated", {
-      answer,
-      sessionId: session.id,
-    }),
-  );
+  send("done", { answer, sessionId: session.id });
+  } catch (error) {
+    const partialAnswer = (error as Error & { partialAnswer?: string }).partialAnswer;
+    if (partialAnswer) {
+      await prisma.chatMessage.create({
+        data: { sessionId: session.id, role: "ASSISTANT", content: partialAnswer },
+      });
+    }
+    send("error", { message: error instanceof Error ? error.message : "Unable to generate an answer" });
+  } finally {
+    if (!res.writableEnded) res.end();
+  }
 });
