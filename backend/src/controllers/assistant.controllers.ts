@@ -1,17 +1,17 @@
-import { asyncHandler } from "../utils/asynchandler";
-import { prisma } from "../lib/prisma";
-import { ApiError } from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
-import { retrieveContext } from "../qdrant/vectorClient";
-import { streamAnswer } from "../lib/llm";
+import { asyncHandler } from "../utils/asynchandler.js";
+import { prisma } from "../lib/prisma.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { retrieveContext } from "../qdrant/vectorClient.js";
+import { streamAnswer } from "../lib/llm.js";
 import {
   assistantKeySchema,
   chatRequestSchema,
   orgParamsSchema,
   parseInput,
   slugParamsSchema,
-} from "../utils/validation";
-import type { ChatMessage } from "../generated/prisma/client";
+} from "../utils/validation.js";
+import type { ChatMessage } from "../generated/prisma/client.js";
 
 
 const DEFAULT_MONTHLY_CHAT_LIMIT = 1000;

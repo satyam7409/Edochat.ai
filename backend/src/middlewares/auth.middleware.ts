@@ -1,8 +1,8 @@
 // middleware/auth.middleware.ts
 import jwt from "jsonwebtoken";
-import { prisma } from "../lib/prisma";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asynchandler";
+import { prisma } from "../lib/prisma.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asynchandler.js";
 
 export const authenticate = asyncHandler(async (req, res, next) => {
   const authHeader = req.headers.authorization;

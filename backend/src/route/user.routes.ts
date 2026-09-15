@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { signup, login, logout, refresh } from "../controllers/user.controllers";
-import { authRateLimiter } from "../middlewares/rateLimitor.middleware";
+import { signup, login, logout, refresh } from "../controllers/user.controllers.js";
+import { authRateLimiter } from "../middlewares/rateLimitor.middleware.js";
 
 const route = Router();
 

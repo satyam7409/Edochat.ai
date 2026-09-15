@@ -3,12 +3,12 @@ dotenv.config(); // must be first so env vars are available everywhere
 
 import express from "express";
 import cors from "cors";
-import { errorHandler } from "./middlewares/error.middleware";
-import orgRoutes from "./route/org.routes";
-import userRoutes from "./route/user.routes";
-import assistantRoutes from "./route/assistant.routes";
-import { retryProcessingDocuments } from "./controllers/org.controllers";
-import { ensureKnowledgeCollection } from "./lib/qdrant";
+import { errorHandler } from "./middlewares/error.middleware.js";
+import orgRoutes from "./route/org.routes.js";
+import userRoutes from "./route/user.routes.js";
+import assistantRoutes from "./route/assistant.routes.js";
+import { retryProcessingDocuments } from "./controllers/org.controllers.js";
+import { ensureKnowledgeCollection } from "./lib/qdrant.js";
 
 const app = express();
 const PORT = process.env.PORT;

@@ -1,6 +1,6 @@
 // middleware/verifyOrgAccess.middleware.ts
 import type { NextFunction, Request, Response } from "express";
-import { ApiError } from "../utils/ApiError";
+import { ApiError } from "../utils/ApiError.js";
 
 export function verifyOrgAccess(req: Request, _res: Response, next: NextFunction) {
   const { orgId } = req.params;

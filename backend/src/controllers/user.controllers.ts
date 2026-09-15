@@ -1,11 +1,11 @@
-import { asyncHandler } from "../utils/asynchandler";
-import { prisma } from "../lib/prisma";
-import { ApiError } from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
+import { asyncHandler } from "../utils/asynchandler.js";
+import { prisma } from "../lib/prisma.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { loginSchema, parseInput, signupSchema } from "../utils/validation";
+import { loginSchema, parseInput, signupSchema } from "../utils/validation.js";
 
 function issueTokens(userId: string) {
   const accessToken = jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET!, {

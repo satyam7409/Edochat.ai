@@ -2,11 +2,11 @@ import {
   generateAssistant,
   getPublicAssistantConfig,
   publicChat,
-} from "../controllers/assistant.controllers";
+} from "../controllers/assistant.controllers.js";
 import { Router } from "express";
-import { authenticate } from "../middlewares/auth.middleware";
-import { chatRateLimiter } from "../middlewares/rateLimitor.middleware";
-import { verifyOrgAccess } from "../middlewares/verifyOrgAcess.middleware";
+import { authenticate } from "../middlewares/auth.middleware.js";
+import { chatRateLimiter } from "../middlewares/rateLimitor.middleware.js";
+import { verifyOrgAccess } from "../middlewares/verifyOrgAcess.middleware.js";
 
 const router = Router();
 

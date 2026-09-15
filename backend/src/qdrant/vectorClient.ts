@@ -1,7 +1,7 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { v4 as uuidv4 } from 'uuid';
-import { createEmbedding } from "../lib/embeddings";
-import {prisma} from "../lib/prisma";
+import { createEmbedding } from "../lib/embeddings.js";
+import {prisma} from "../lib/prisma.js";
 
 const client = new QdrantClient({ url: process.env.QDRANT_URL!, apiKey: process.env.QDRANT_API_KEY! });
 const COLLECTION = "knowledge_chunks";

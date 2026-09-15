@@ -7,9 +7,9 @@ import {
   deleteDocument,
   updateDocument,
   upload,
-} from "../controllers/org.controllers";
-import { authenticate } from "../middlewares/auth.middleware";
-import { verifyOrgAccess } from "../middlewares/verifyOrgAcess.middleware";
+} from "../controllers/org.controllers.js";
+import { authenticate } from "../middlewares/auth.middleware.js";
+import { verifyOrgAccess } from "../middlewares/verifyOrgAcess.middleware.js";
 const router = Router();
 
 router.use(authenticate);

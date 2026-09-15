@@ -1,15 +1,15 @@
 import { PDFParse } from "pdf-parse";
 import multer from "multer";
 import { customAlphabet } from "nanoid";
-import { deleteDocumentFile, getSignedDocumentUrl, uploadDocumentFile } from "../lib/supabaseStorage";
-import { prisma } from "../lib/prisma";
-import { deleteDocumentChunks, ingestDocument } from "../qdrant/vectorClient";
-import { ApiError } from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
-import { asyncHandler } from "../utils/asynchandler";
-import { chunkText } from "../utils/chunkText";
-import { createOrgSchema, documentParamsSchema, documentQuerySchema, orgParamsSchema, parseInput, updateDocumentSchema, uploadDocumentSchema } from "../utils/validation";
-import type { Document } from "../generated/prisma/client";
+import { deleteDocumentFile, getSignedDocumentUrl, uploadDocumentFile } from "../lib/supabaseStorage.js";
+import { prisma } from "../lib/prisma.js";
+import { deleteDocumentChunks, ingestDocument } from "../qdrant/vectorClient.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asynchandler.js";
+import { chunkText } from "../utils/chunkText.js";
+import { createOrgSchema, documentParamsSchema, documentQuerySchema, orgParamsSchema, parseInput, updateDocumentSchema, uploadDocumentSchema } from "../utils/validation.js";
+import type { Document } from "../generated/prisma/client.js";
 
 export const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: (_req, file, callback) => callback(null, file.mimetype === "application/pdf") });
 const generateSiteKey = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 24);
