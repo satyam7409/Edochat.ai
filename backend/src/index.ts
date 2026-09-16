@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config(); // must be first so env vars are available everywhere
+dotenv.config();
 
 import express from "express";
 import cors from "cors";
@@ -16,7 +16,7 @@ const PORT = process.env.PORT;
 // ── CORS — must be registered before all routes ───────────────────────────────
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: process.env.PUBLIC_APP_URL,
     credentials: true,                                   // allow cookies (refresh token)
     // allowedHeaders: ["Content-Type", "Authorization", "X-Assistant-Key"],
     // methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
