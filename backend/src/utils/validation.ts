@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ApiError } from "./ApiError";
+import { ApiError } from "./ApiError.js";
 
 export const documentCategorySchema = z.enum([
   "FINANCE",
