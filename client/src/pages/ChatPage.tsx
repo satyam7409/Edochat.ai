@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { Send, BookOpen, AlertCircle, Sparkles, ShieldCheck } from "lucide-react";
-import { getChatConfig, sendMessage } from "../api/chat";
+import { getChatConfig, streamMessage } from "../api/chat";
 import { Spinner } from "../components/ui/Spinner";
 
 interface Message {
@@ -120,23 +120,54 @@ export function ChatPage() {
     setTyping(true);
     setLoading(true);
 
+    // FIX: track whether the first token has arrived yet, so the typing
+    // indicator stays visible through retrieval + time-to-first-token
+    // instead of disappearing before any bubble actually has content.
+    const assistantId = crypto.randomUUID();
+    let firstTokenReceived = false;
+
     try {
-      const response = await sendMessage(
+      const response = await streamMessage(
         slug,
         question,
         publicSiteKey,
+        (token) => {
+          if (!firstTokenReceived) {
+            firstTokenReceived = true;
+            setTyping(false);
+            setMessages((prev) => [
+              ...prev,
+              { id: assistantId, role: "assistant", content: token },
+            ]);
+          } else {
+            setMessages((prev) =>
+              prev.map((message) =>
+                message.id === assistantId
+                  ? { ...message, content: message.content + token }
+                  : message,
+              ),
+            );
+          }
+        },
         sessionId,
       );
+
+      // FIX: safety fallback — if for any reason no "token" events arrived
+      // before "done" (e.g. a future backend change or an edge case), make
+      // sure the bubble still ends up showing the final answer instead of
+      // rendering empty. Also creates the bubble if it was never created.
+      setMessages((prev) => {
+        const alreadyHasBubble = prev.some((m) => m.id === assistantId);
+        if (!alreadyHasBubble) {
+          return [...prev, { id: assistantId, role: "assistant", content: response.answer }];
+        }
+        return prev.map((m) =>
+          m.id === assistantId && !m.content ? { ...m, content: response.answer } : m,
+        );
+      });
+
       setSessionId(response.sessionId);
       sessionStorage.setItem(`chat-session:${slug}`, response.sessionId);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: response.answer,
-        },
-      ]);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "";
       const errText = message.toLowerCase().includes("monthly question limit")
